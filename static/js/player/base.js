@@ -29,6 +29,10 @@ export class Player extends GameObject {
         this.staus = 3; // 0:静止不动 ， 1： 向前， 2：向后 ， 3：跳跃 ， 4：攻击 ， 5：被攻击 ， 6：死亡
         this.animations = new Map();
         this.frame_current_cnt = 0;
+
+        this.hp = 100;
+        this.$hp1 = this.root.$kof.find(`.kof-head-hp-${this.id}>div>div`);
+        this.$hp = this.root.$kof.find(`.kof-head-hp-${this.id}>div`);
     }
 
     start() {
@@ -36,17 +40,53 @@ export class Player extends GameObject {
     }
 
     update_move() {
-        if (this.staus === 3) {
-            this.vy += this.gravity;
-        }
+
+        this.vy += this.gravity;
 
         this.x += this.vx * this.timedelta / 1000;
         this.y += this.vy * this.timedelta / 1000;
 
+        let [a, b] = this.root.players;
+
+        if (a !== this) [a, b] = [b, a];
+        let r1 = {
+            x1: a.x,
+            y1: a.y,
+            x2: a.x + a.width,
+            y2: a.y + a.height,
+        }
+        let r2 = {
+            x1: b.x,
+            y1: b.y,
+            x2: b.x + b.width,
+            y2: b.y + b.height,
+        }
+        if (this.is_collision(r1, r2)) {
+            if (a.x == 0 || a.x == 1280 - a.width || b.x == 0 || b.x === 1280 - b.width) {
+                this.x -= this.vx * this.timedelta / 1000;
+                this.y -= this.vy * this.timedelta / 1000;
+            } else {
+                b.x += this.vx * this.timedelta / 1000 / 2;
+                b.y += this.vy * this.timedelta / 1000 / 2;
+                a.x -= this.vx * this.timedelta / 1000 / 2;
+                a.y -= this.vy * this.timedelta / 1000 / 2;
+            }
+            if (this.is_collision(r1, r2)) {
+                this.x -= this.vx * this.timedelta / 1000;
+                this.y -= this.vy * this.timedelta / 1000;
+                this.vx = 0;
+                this.vy = 0;
+            }
+
+            if (this.staus === 3)
+                this.staus = 0;
+        }
+
         if (this.y > 450) {
             this.y = 450;
             this.vy = 0;
-            this.staus = 0;
+            if (this.staus === 3)
+                this.staus = 0;
         }
 
         if (this.x < 0) {
@@ -70,7 +110,7 @@ export class Player extends GameObject {
             space = this.pressed_keys.has('Enter');
         }
 
-        if (this.staus === 0 || this.staus === 1) {
+        if ((this.staus === 0 || this.staus === 1) && this.y == 450) {
             if (space) {
                 this.staus = 4;
                 this.vx = 0;
@@ -116,6 +156,23 @@ export class Player extends GameObject {
         this.staus = 5;
         this.frame_current_cnt = 0;
 
+        this.hp = Math.max(this.hp - 10, 0);
+
+        this.$hp1.animate({
+            width: this.$hp.parent().width() * this.hp / 100
+        }, 500);
+
+        this.$hp.animate({
+            width: this.$hp.parent().width() * this.hp / 100
+        }, 600);
+
+        //this.$hp.width(this.$hp.parent().width() * this.hp / 100);
+
+        if (this.hp <= 0) {
+            this.staus = 6;
+            this.frame_current_cnt = 0;
+            this.vx = 0;
+        }
     }
 
     is_collision(r1, r2) {
@@ -127,7 +184,7 @@ export class Player extends GameObject {
     }
 
     update_attack() {
-        if (this.status === 4 && this.frame_current_cnt === 18) {
+        if (this.staus === 4 && this.frame_current_cnt === 18) {
             let me = this, you = this.root.players[1 - this.id];
             let r1;
             if (this.direction > 0) {
@@ -200,12 +257,13 @@ export class Player extends GameObject {
             }
         }
 
+
         if (staus === 4 || staus === 5 || staus === 6) {
             if (this.frame_current_cnt == obj.frame_rate * (obj.frame_cnt - 1)) {
                 if (staus === 6) {
                     this.frame_current_cnt--;
                 } else {
-                    this.status = 0;
+                    this.staus = 0;
                 }
             }
         }

@@ -10,7 +10,7 @@ export class Mai extends Player {
 
     init_animation() {
         let outer = this;
-        let offset_y = [18, -4, -4, -122, 0, 0, 0];
+        let offset_y = [18, -4, -4, -120, -20, 0, -82];
         for (let i = 0; i < 7; i++) {
             let gif = GIF();
             gif.load(`/static/images/player/mai/${i}.gif`);
